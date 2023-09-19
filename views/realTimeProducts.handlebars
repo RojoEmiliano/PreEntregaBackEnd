@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Productos en Tiempo Real</title>
+</head>
+<body>
+  <h1>Productos en Tiempo Real</h1>
+  <ul id="productList">
+    <!-- Aquí se mostrarán los productos en tiempo real -->
+  </ul>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    // Manejar eventos de WebSocket
+    socket.on('nuevoProducto', (nuevoProducto) => {
+      // Lógica para agregar el nuevo producto a la lista en tiempo real
+      const productList = document.getElementById('productList');
+      const listItem = document.createElement('li');
+      listItem.textContent = `Nuevo producto: ${nuevoProducto.nombre}`;
+      productList.appendChild(listItem);
+    });
+
+    socket.on('eliminarProducto', (idProducto) => {
+      // Lógica para eliminar el producto de la lista en tiempo real
+      const productList = document.getElementById('productList');
+      const items = productList.getElementsByTagName('li');
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].textContent.includes(idProducto)) {
+          productList.removeChild(items[i]);
+          break;
+        }
+      }
+    });
+  </script>
+</body>
+</html>

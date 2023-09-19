@@ -1,142 +1,73 @@
 const fs = require("fs");
 const path = require("path");
 
-const dataFilePath = path.join(__dirname, "products.json"); // Ruta al archivo JSON
+const dataFilePath = path.join(__dirname, "../data/product.json"); // Ruta al archivo JSON
 
-const getAllProducts = (req, res) => {
-  try {
-    // Leer el archivo JSON
-    const productsData = JSON.parse(fs.readFileSync(dataFilePath, "utf-8"));
-
-    // Enviar la lista de productos como respuesta
-    res.json(productsData);
-  } catch (error) {
-    res.status(500).json({ error: "Error al obtener los productos" });
+class ProductController {
+  constructor() {
+    this.productsData = this.readProductsFromFile();
   }
-};
 
-const getProductById = (req, res) => {
-  const productId = req.params.pid;
+  readProductsFromFile() {
+    try {
+      const data = fs.readFileSync(dataFilePath, "utf-8");
+      return JSON.parse(data);
+    } catch (error) {
+      return [];
+    }
+  }
 
-  try {
-    // Leer el archivo JSON
-    const productsData = JSON.parse(fs.readFileSync(dataFilePath, "utf-8"));
+  saveProductsToFile() {
+    fs.writeFileSync(dataFilePath, JSON.stringify(this.productsData, null, 2), "utf-8");
+  }
 
-    // Buscar el producto por su ID
-    const product = productsData.find((product) => product.id === productId);
+  getAllProducts() {
+    return this.productsData;
+  }
 
-    if (!product) {
-      res.status(404).json({ error: "Producto no encontrado" });
-      return;
+  getProductById(productId) {
+    return this.productsData.find((product) => product.id === productId);
+  }
+
+  createProduct(newProduct) {
+    const productId = this.generateUniqueId();
+    newProduct.id = productId;
+    this.productsData.push(newProduct);
+    this.saveProductsToFile();
+    return newProduct;
+  }
+
+  updateProduct(productId, updatedFields) {
+    const productIndex = this.productsData.findIndex((product) => product.id === productId);
+
+    if (productIndex !== -1) {
+      this.productsData[productIndex] = {
+        ...this.productsData[productIndex],
+        ...updatedFields,
+      };
+      this.saveProductsToFile();
+      return this.productsData[productIndex];
     }
 
-    // Enviar el producto encontrado como respuesta
-    res.json(product);
-  } catch (error) {
-    res.status(500).json({ error: "Error al obtener el producto" });
+    return null;
   }
-};
 
-const createProduct = (req, res) => {
-  const newProduct = req.body; // Datos del nuevo producto a crear
+  deleteProduct(productId) {
+    const productIndex = this.productsData.findIndex((product) => product.id === productId);
 
-  try {
-    // Leer el archivo JSON
-    const productsData = JSON.parse(fs.readFileSync(dataFilePath, "utf-8"));
-
-    // Generar un nuevo ID para el producto (puedes usar alguna lógica para esto)
-    const newProductId = generateNewProductId();
-
-    // Agregar el nuevo producto al arreglo de productos
-    newProduct.id = newProductId;
-    productsData.push(newProduct);
-
-    // Escribir los datos actualizados en el archivo JSON
-    fs.writeFileSync(
-      dataFilePath,
-      JSON.stringify(productsData, null, 2),
-      "utf-8"
-    );
-
-    // Enviar el nuevo producto creado como respuesta
-    res.status(201).json(newProduct);
-  } catch (error) {
-    res.status(500).json({ error: "Error al crear el producto" });
-  }
-};
-
-const updateProduct = (req, res) => {
-  const productId = req.params.pid;
-  const updatedProduct = req.body; // Datos actualizados del producto
-
-  try {
-    // Leer el archivo JSON
-    const productsData = JSON.parse(fs.readFileSync(dataFilePath, "utf-8"));
-
-    // Buscar el índice del producto a actualizar
-    const productIndex = productsData.findIndex(
-      (product) => product.id === productId
-    );
-
-    if (productIndex === -1) {
-      res.status(404).json({ error: "Producto no encontrado" });
-      return;
+    if (productIndex !== -1) {
+      const deletedProduct = this.productsData.splice(productIndex, 1)[0];
+      this.saveProductsToFile();
+      return deletedProduct;
     }
 
-    // Actualizar el producto en el arreglo de productos
-    productsData[productIndex] = {
-      ...productsData[productIndex],
-      ...updatedProduct,
-    };
-
-    // Escribir los datos actualizados en el archivo JSON
-    fs.writeFileSync(
-      dataFilePath,
-      JSON.stringify(productsData, null, 2),
-      "utf-8"
-    );
-
-    // Enviar el producto actualizado como respuesta
-    res.json(productsData[productIndex]);
-  } catch (error) {
-    res.status(500).json({ error: "Error al actualizar el producto" });
+    return null;
   }
-};
 
-const deleteProduct = (req, res) => {
-  const productId = req.params.pid;
-
-  try {
-    // Leer el archivo JSON
-    const productsData = JSON.parse(fs.readFileSync(dataFilePath, "utf-8"));
-
-    // Filtrar el producto a eliminar del arreglo de productos
-    const updatedProductsData = productsData.filter(
-      (product) => product.id !== productId
-    );
-
-    if (productsData.length === updatedProductsData.length) {
-      res.status(404).json({ error: "Producto no encontrado" });
-      return;
-    }
-
-    // Escribir los datos actualizados en el archivo JSON
-    fs.writeFileSync(
-      dataFilePath,
-      JSON.stringify(updatedProductsData, null, 2),
-      "utf-8"
-    );
-
-    res.status(204).send(); // Respuesta exitosa sin contenido
-  } catch (error) {
-    res.status(500).json({ error: "Error al eliminar el producto" });
+  generateUniqueId() {
+    const maxId = this.productsData.reduce((max, product) => Math.max(max, product.id), 0);
+    return maxId + 1;
   }
-};
+}
 
-module.exports = {
-  getAllProducts,
-  getProductById,
-  createProduct,
-  updateProduct,
-  deleteProduct,
-};
+module.exports = new ProductController();
